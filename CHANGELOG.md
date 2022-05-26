@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/starship/starship/compare/v1.7.1...v1.8.0) (2022-05-26)
+
+
+### Features
+
+* Add support for Daml ([#4004](https://github.com/starship/starship/issues/4004)) ([3fe6cc0](https://github.com/starship/starship/commit/3fe6cc023cd52917ae60a4d06ee6f1f78baa19e7))
+
 ### [1.7.1](https://github.com/starship/starship/compare/v1.7.0...v1.7.1) (2022-05-24)
 
 
