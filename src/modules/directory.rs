@@ -40,6 +40,7 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
         .get_home()
         .expect("Unable to determine HOME_DIR for user");
     let physical_dir = &context.current_dir;
+    let replace_home = config.replace_home;
     let display_dir = if config.use_logical_path {
         &context.logical_dir
     } else {
@@ -69,7 +70,7 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
 
     // the home directory if required.
     let dir_string = dir_string
-        .unwrap_or_else(|| contract_path(display_dir, &home_dir, &home_symbol).to_string());
+        .unwrap_or_else(|| contract_home_path(display_dir, &home_dir, &home_symbol, replace_home).to_string());
 
     #[cfg(windows)]
     let dir_string = remove_extended_path_prefix(dir_string);
@@ -91,7 +92,8 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
         // fish-style path contraction together
         if config.fish_style_pwd_dir_length > 0 && config.substitutions.is_empty() {
             // If user is using fish style path, we need to add the segment first
-            let contracted_home_dir = contract_path(display_dir, &home_dir, &home_symbol);
+            let contracted_home_dir =
+                contract_home_path(display_dir, &home_dir, &home_symbol, replace_home).to_string();
             to_fish_style(
                 config.fish_style_pwd_dir_length as usize,
                 contracted_home_dir.to_string(),
@@ -238,6 +240,23 @@ fn contract_path<'a>(
     ))
 }
 
+/// Contract the home directory path of a path
+///
+/// Replaces the `home_path` in a given `full_path` with the provided
+/// `home_symbol` if `replace_home` evaluates to true. Otherwise the `full_path` is returned.
+fn contract_home_path<'a>(
+    full_path: &'a Path,
+    home_path: &'a Path,
+    home_symbol: &'a str,
+    replace_home: bool,
+) -> Cow<'a, str> {
+    if replace_home {
+        contract_path(&full_path, &home_path, &home_symbol)
+    } else {
+        full_path.to_slash_lossy()
+    }
+}
+
 /// Contract the root component of a path based on the real path
 ///
 /// Replaces the `top_level_path` in a given `full_path` with the provided
@@ -371,8 +390,13 @@ mod tests {
         let full_path = Path::new("/Users/astronaut/schematics/rocket");
         let home = Path::new("/Users/astronaut");
 
-        let output = contract_path(full_path, home, "~");
+        let mut replace_home = true;
+        let output = contract_home_path(full_path, home, "~", replace_home);
         assert_eq!(output, "~/schematics/rocket");
+
+        replace_home = false;
+        let output = contract_home_path(full_path, home, "~", replace_home);
+        assert_eq!(output, full_path.to_slash_lossy());
     }
 
     #[test]
@@ -408,8 +432,13 @@ mod tests {
                 let path = Path::new(path);
                 let home_path = Path::new(home_path);
 
-                let output = contract_path(path, home_path, "~");
+                let mut replace_home = true;
+                let output = contract_home_path(path, home_path, "~", replace_home);
                 assert_eq!(output, "~/schematics/rocket");
+
+                replace_home = false;
+                let output = contract_home_path(path, home_path, "~", replace_home);
+                assert_eq!(output, path.to_slash_lossy());
             }
         }
     }
@@ -608,6 +637,46 @@ mod tests {
         let expected = Some(format!(
             "{} ",
             Color::Cyan.bold().paint(convert_path_sep("🚀"))
+        ));
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn home_directory_no_home_symbol() {
+        let path = home_dir().unwrap();
+        let actual = ModuleRenderer::new("directory")
+            .config(toml::toml! {
+                [directory]
+                replace_home = false
+            })
+            .path(&path)
+            .collect();
+        let expected = Some(format!(
+            "{} ",
+            Color::Cyan
+                .bold()
+                .paint(convert_path_sep(&format!("{}", path.display())))
+        ));
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn home_directory_no_home_symbol_subdirectories() {
+        let path = home_dir().unwrap().join("/sub/dir");
+        let actual = ModuleRenderer::new("directory")
+            .config(toml::toml! {
+                [directory]
+                replace_home = false
+            })
+            .path(&path)
+            .collect();
+        let expected = Some(format!(
+            "{} ",
+            Color::Cyan
+                .bold()
+                .paint(convert_path_sep(&format!("{}", path.display())))
         ));
 
         assert_eq!(expected, actual);

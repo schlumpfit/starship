@@ -1101,6 +1101,7 @@ it would have been `nixpkgs/pkgs`.
 | `truncation_symbol` | `''`                                                                                                        | The symbol to prefix to truncated paths. eg: '…/'                                    |
 | `repo_root_style`   |                                                                                                             | The style for the root of the git repo. The default value is equivalent to `style`.  |
 | `repo_root_format`  | `'[$before_root_path]($style)[$repo_root]($repo_root_style)[$path]($style)[$read_only]($read_only_style) '` | The format of a git repo when `repo_root_style` is defined.                          |
+| `replace_home`      | `true`                                                                                                      | Wether or not to replace the home directory path with the `home_symbol` or not.      |
 | `home_symbol`       | `'~'`                                                                                                       | The symbol indicating home directory.                                                |
 | `use_os_path_sep`   | `true`                                                                                                      | Use the OS specific path separator instead of always using `/` (e.g. `\` on Windows) |
 
